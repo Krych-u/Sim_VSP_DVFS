@@ -7,8 +7,8 @@ from timeit import default_timer as timer
 class BlockAllocation(event.Event):
 
     # Chosen algorithm
-    ALGORITHM_TYPE = 2
-    DVFS = 1
+    ALGORITHM_TYPE = 1
+    DVFS = 0
 
     def __init__(self, logger, event_queue_, time_, sim_network_, rb_max_nb_, rb_number_, rb_al_time_, update_time, rand_cont, stats):
         super().__init__(logger, event_queue_, time_, sim_network_, rb_max_nb_, rb_number_, rb_al_time_, rand_cont)
@@ -28,15 +28,20 @@ class BlockAllocation(event.Event):
         if self.ALGORITHM_TYPE == 0:
             self.log.info("RB allocation using maximum throughput algorithm")
             self.max_th()
-
+        
         elif self.ALGORITHM_TYPE == 1:
+            self.log.info("RB allocation using proportional fair algorithm")
+            self.proportional_fair()
+
+        elif self.ALGORITHM_TYPE == 2:
             self.log.info("RB allocation using round robin algorithm")
             self.round_robin()
 
-        elif self.ALGORITHM_TYPE == 2:
+        elif self.ALGORITHM_TYPE == 3:
             self.log.info("RB allocation using heuristic power aware VSP-DVFS algorithm")
             load = self.heuristic_vsp_dvfs()
             self.stats.load.append(load)
+        
 
         stop = timer() - start
         self.stats.running_time.append(stop * time_multiplier)
@@ -82,7 +87,7 @@ class BlockAllocation(event.Event):
                 if rb+ue.rb_number < self.sim_network.rb_number:
                     ue_th = sum(ue_th_list[rb:rb+ue.rb_number]) / ue.rb_number
                 else:
-                    ue_th = sum(ue_th_list[rb:self.sim_network.rb_number-1]) / self.sim_network.rb_number - rb
+                    ue_th = sum(ue_th_list[rb:self.sim_network.rb_number-1]) / (self.sim_network.rb_number - rb)
 
                 if ue_th > max_thr:
                     max_thr = ue_th
@@ -194,7 +199,7 @@ class BlockAllocation(event.Event):
 
         # load
         t_aloc = self.stats.running_time[-1]
-        t_max_aloc = 0.01
+        t_max_aloc = 0.002
         allocated_blocks = self.allocated_blocks(self)
 
         load = (allocated_blocks / self.sim_network.rb_number) * (t_aloc / t_max_aloc)
@@ -213,7 +218,34 @@ class BlockAllocation(event.Event):
         return load
 
     def proportional_fair(self):
+        rb = 0
+        while rb < self.sim_network.rb_number:
 
+            max_pf_param = 0
+            max_ue = None
+
+            for ue in self.sim_network.users_list:
+
+                if ue.rb_number == ue.allocated_rb:
+                    continue
+
+                ue_th_list = ue.return_th_list(self.time)
+
+                if rb+ue.rb_number < self.sim_network.rb_number:
+                    pf_param = (sum(ue_th_list[rb:rb+ue.rb_number]) / ue.rb_number) / ue.return_mean_th(self.time, rb)
+                else:
+                    pf_param = (sum(ue_th_list[rb:self.sim_network.rb_number-1]) / (self.sim_network.rb_number - rb)) / ue.return_mean_th(self.time, rb)
+
+                if pf_param > max_pf_param:
+                    max_pf_param = pf_param
+                    max_ue = ue
+
+            if max_ue is None:
+                break
+
+            self.sim_network.update_rb2(max_ue.user_id, rb, self.time)
+            max_ue.throughput = max_ue.calculate_throughput(self.time)
+            rb += max_ue.rb_number
         return
 
     @staticmethod

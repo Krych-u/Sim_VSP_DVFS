@@ -9,9 +9,9 @@ import statistic
 
 class Simulator:
 
-    LAMBD = 0.6     # Lambda for users generator, higher lambda -> more users in network (0.05 can make big difference)
+    LAMBD = 0.8     # Lambda for users generator, higher lambda -> more users in network (0.05 can make big difference)
     RB_AL_TIME = 10   # Time between RB allocation
-    RB_MAX_NB = 6    # Maximum RB number for each user
+    RB_MAX_NB = 5    # Maximum RB number for each user
     RB_NUMBER = 50   # Number of all RBs
     UPDATE_TIME = 1  # Time between users received data update
 

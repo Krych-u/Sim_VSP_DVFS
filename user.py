@@ -94,6 +94,22 @@ class User:
             th_list.append(User.RB_BANDWIDTH * np.log2(1 + pow(10, snr/10)))
 
         return th_list
+    
+    def return_mean_th(self, time, rb):
 
+        sum = 0
+        count = 0
+        #print(f'Time: {time} rb: {rb}, self.start_time: {self.start_time}')
+        for i in range (self.start_time, time):
+            slot = i % 200
+            sum += self.th_list[slot][rb]
+            count += 1
+            #print(f'i: {i} sum: {sum} count: {count}')
+
+        if sum == 0:
+            print(f'Time: {time} rb: {rb}, self.start_time: {self.start_time}')
+            sum = 1
+        return sum / count
+    
     def wait_time(self, time):
         return time - self.start_time

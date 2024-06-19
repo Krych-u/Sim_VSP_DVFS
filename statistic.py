@@ -91,6 +91,9 @@ class Stat:
             ax3.set_title('Parametr load')
             ax3.grid()
 
+            ax3.axhline(y=0.33, color='r', linestyle='--')
+            ax3.axhline(y=0.66, color='r', linestyle='--')
+
             plt.tight_layout()
             plt.show()
 
